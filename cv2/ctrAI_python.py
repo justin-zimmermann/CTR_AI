@@ -42,12 +42,12 @@ class TrackImage():
 		"slidecoliseum",
 		"turbotrack"]
 		self.paths = []
-		self.root = "C:/Users/Justin/Documents/CTR/CTR_AI/cv2/CTR Screens"
+		self.root = "C:/Users/Justin/Documents/CTR/CTR_AI/cv2/CTR Screens/"
 		for track in self.tracks:
 			self.paths.append([])
 			for file in os.listdir("C:/Users/Justin/Documents/CTR/CTR_AI/cv2/CTR Screens"):
 				if file.startswith(track + "_processed"):
-					self.paths[-1].append(root + file)
+					self.paths[-1].append(self.root + file)
 		#simplified, needs to account for maps with several images
 		self.images = [[Image.open(subpath).convert("RGB") for subpath in path] for path in self.paths]
 		self.crop = None
@@ -270,18 +270,18 @@ class Console:
 
 BATCH_SIZE = 64
 GAMMA = 0.999
-EPS_START = 0.0
-EPS_END = 0.0
+EPS_START = 0.5
+EPS_END = 0.1
 EPS_DECAY = 700000
 TARGET_UPDATE = 30
 NORMALISATION_CONST = 4000000
 lr = 0.0005
 manual_training = False
-is_checkpoint = True
-testing = True
+is_checkpoint = False
+testing = False
 checkpoint = None
 if is_checkpoint:
-	checkpoint = torch.load("ctrai_cv1.model")
+	checkpoint = torch.load("ctrai_cv2.model")
 
 crop_size = 20
 n_actions = 3
@@ -384,8 +384,9 @@ for i_episode in range(num_episodes):
 		first_connection = False
 
 	inputs = list(map(float, console.recv().split()))
+	print(inputs)
 	#theta = np.arctan2(inputs[0], inputs[1])
-	image.rotate_and_crop(inputs[0], inputs[1], inputs[2], inputs[3], inputs[4])
+	image.rotate_and_crop(inputs[0], inputs[1], inputs[2], inputs[3], int(inputs[4]))
 
 	state = T.ToTensor()(image.crop).unsqueeze_(0).to(device)
 
@@ -410,7 +411,7 @@ for i_episode in range(num_episodes):
 
 		inputs = list(map(float, console.recv().split()))
 		#theta = np.arctan2(inputs[0], inputs[1])
-		image.rotate_and_crop(inputs[0], inputs[1], inputs[2], inputs[3], inputs[4])
+		image.rotate_and_crop(inputs[0], inputs[1], inputs[2], inputs[3], int(inputs[4]))
 
 		next_state = T.ToTensor()(image.crop).unsqueeze_(0).to(device)
 		#next_state = torch.tensor([inputs]).to(device)

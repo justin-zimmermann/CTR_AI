@@ -337,7 +337,7 @@ while true do
 		gui.text(XTEXT,260,"Y : " .. Y_POS,"white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
 		--gui.text(XTEXT,300,"Angle : " .. ANGLE,"white")
-		gui.text(XTEXT,300,"Track : " .. POINTER,"white")
+		--gui.text(XTEXT,300,"Track : " .. POINTER,"white")
 		gui.text(XTEXT,320,"Lap Progress : " .. LAPPROG,"white")
 		gui.text(XTEXT,340,"Drive Backwards : " .. DRIVEBACKWARDS,"white")
 		-- if TOT_SPD>20000 then 
@@ -411,11 +411,11 @@ while true do
 		if table["P1 R1"] then gui.drawBox(301,334,315,343,color,color) else end
 		if table["P1 R2"] then gui.drawBox(300,315,320,329,color,color) else end
 		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",146,314,200,142)
-		scale = 10.
+		scale = 1.
 		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 350, 100, 100)
 		
 		--gui.drawImageRegion("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/crashcove_aiview.png",get_x(X_POS)-100,get_y(Y_POS)-100,200,200, 2, 350, 100, 100)
-		gui.drawPie(2,350,100,100,360*(-ANGLE)/4095 +45 ,90,"red", "null")
+		gui.drawPie(2,350,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
 
 		if is_random == 2 and ENDSWITCH == 0 and PREV_PICKUP < 4 then --manual training
 			tcp:send(action)
@@ -483,8 +483,8 @@ while true do
 				average_reward = average(rewards)
 			end
 			FRAMESENDED = FRAMESENDED + 1
-			--load_savestate(1)
-			savestate.load("ss" .. (TRACK+2)%18 .. ".ss")
+			SAVESTATESLOT = (SAVESTATESLOT%9)+1
+			load_savestate(SAVESTATESLOT)
 		elseif (DRIVEBACKWARDS >= 1000) and (ISBACKWARDS == 1) then --if drive backwards restart
 			if ENDSWITCH == 0 then
 				ENDSWITCH = 1
@@ -499,8 +499,8 @@ while true do
 				average_reward = average(rewards)
 			end
 			FRAMESENDED = FRAMESENDED + 1
-			--load_savestate(1)
-			savestate.load("ss" .. (TRACK+2)%18 .. ".ss")
+			SAVESTATESLOT = (SAVESTATESLOT%9)+1
+			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
 			press_buttons(weapon_mode)
