@@ -154,6 +154,7 @@ local random_rate = 0.
 local reward_malus = 0.
 local TRACK = 0.
 local IMAGE_PATH
+local FRAMES_NOT_MOVING = 0
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -197,6 +198,11 @@ while true do
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
 		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
+
+		if Y_POS = Y_POS_2 and X_POS = X_POS_2 then
+			FRAMES_NOT_MOVING = FRAMES_NOT_MOVING + 1
+		else
+			FRAMES_NOT_MOVING = 0
 
 		-- find which track is played
 		if has_value({1771140,1769548,1767356,1765260,1767580,1771508,1762612,1770696,1768044,1764212,1765368,1808472,1767336,1760880,1768752}, POINTER) then 
@@ -424,7 +430,7 @@ while true do
 		--counter: instead of running the ml model every frame, run it every n frames (speeds up the process)
 		FRAME_SKIP_COUNTER = FRAME_SKIP_COUNTER + 1
 
-		if (RACEENDED ~= 2) and (TIMER > 0) and ((DRIVEBACKWARDS < 1000) or (ISBACKWARDS == 0)) and (PREV_PICKUP < 4) and (FRAME_SKIP_COUNTER > 9) then
+		if (RACEENDED ~= 2) and (TIMER > 0) and ((DRIVEBACKWARDS < 1000) or (ISBACKWARDS == 0)) and (FRAMES_NOT_MOVING < 1000) and (PREV_PICKUP < 4) and (FRAME_SKIP_COUNTER > 9) then
 			if ENDSWITCH == 1 then
 				ENDSWITCH = 0
 				FRAMESENDED = 0
@@ -485,7 +491,7 @@ while true do
 			FRAMESENDED = FRAMESENDED + 1
 			SAVESTATESLOT = (SAVESTATESLOT%9)+1
 			load_savestate(SAVESTATESLOT)
-		elseif (DRIVEBACKWARDS >= 1000) and (ISBACKWARDS == 1) then --if drive backwards restart
+		elseif ((DRIVEBACKWARDS >= 1000) and (ISBACKWARDS == 1)) or (FRAMES_NOT_MOVING >= 1000) then --if drive backwards restart
 			if ENDSWITCH == 0 then
 				ENDSWITCH = 1
 				FRAMESENDED = 0
@@ -498,6 +504,7 @@ while true do
 				end
 				average_reward = average(rewards)
 			end
+			FRAMES_NOT_MOVING = 0
 			FRAMESENDED = FRAMESENDED + 1
 			SAVESTATESLOT = (SAVESTATESLOT%9)+1
 			load_savestate(SAVESTATESLOT)
