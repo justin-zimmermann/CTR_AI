@@ -155,6 +155,7 @@ local reward_malus = 0.
 local TRACK = 0.
 local IMAGE_PATH
 local FRAMES_NOT_MOVING = 0
+local TIMER_LIMIT = 0
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -199,10 +200,19 @@ while true do
 		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 
-		if Y_POS = Y_POS_2 and X_POS = X_POS_2 then
+		if (Y_POS == Y_POS_2) and (X_POS == X_POS_2) then
 			FRAMES_NOT_MOVING = FRAMES_NOT_MOVING + 1
 		else
 			FRAMES_NOT_MOVING = 0
+		end
+
+		if LAPCOUNTER == 0 then
+			TIMER_LIMIT = 200000
+		elseif LAPCOUNTER == 1 then
+			TIMER_LIMIT = 400000
+		else
+			TIMER_LIMIT = 600000
+		end
 
 		-- find which track is played
 		if has_value({1771140,1769548,1767356,1765260,1767580,1771508,1762612,1770696,1768044,1764212,1765368,1808472,1767336,1760880,1768752}, POINTER) then 
@@ -330,8 +340,8 @@ while true do
 		TOT_SPD = math.floor(math.sqrt(X_SPD*X_SPD+Y_SPD*Y_SPD))
 
 		-- gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
-		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
-		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
+		--gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
+		--gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
 		--gui.text(XTEXT,160,"Jump : " .. JUMP,"white")
@@ -339,13 +349,16 @@ while true do
 		-- gui.text(XTEXT,200,"Charge : " .. string.format("%08X", POINTER + 0x3E2),"white")
 		--gui.text(XTEXT,200,string.format("%08X", POINTER),"white")
 		
-		gui.text(XTEXT,240,"X : " .. X_POS,"white")
-		gui.text(XTEXT,260,"Y : " .. Y_POS,"white")
+		gui.text(XTEXT,80,"X : " .. X_POS,"white")
+		gui.text(XTEXT,100,"Y : " .. Y_POS,"white")
+		gui.text(XTEXT,280,"Time left to complete lap:", "white")
+		gui.text(XTEXT,300,TIMER .. "/" .. TIMER_LIMIT, "white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
 		--gui.text(XTEXT,300,"Angle : " .. ANGLE,"white")
 		--gui.text(XTEXT,300,"Track : " .. POINTER,"white")
 		gui.text(XTEXT,320,"Lap Progress : " .. LAPPROG,"white")
-		gui.text(XTEXT,340,"Drive Backwards : " .. DRIVEBACKWARDS,"white")
+		gui.text(XTEXT,340,"Lap " .. LAPCOUNTER+1,"white")
+		--gui.text(XTEXT,340,"Drive Backwards : " .. DRIVEBACKWARDS,"white")
 		-- if TOT_SPD>20000 then 
 			-- savestate.saveslot(9)
 			-- print(TOT_SPD) 
@@ -430,7 +443,7 @@ while true do
 		--counter: instead of running the ml model every frame, run it every n frames (speeds up the process)
 		FRAME_SKIP_COUNTER = FRAME_SKIP_COUNTER + 1
 
-		if (RACEENDED ~= 2) and (TIMER > 0) and ((DRIVEBACKWARDS < 1000) or (ISBACKWARDS == 0)) and (FRAMES_NOT_MOVING < 1000) and (PREV_PICKUP < 4) and (FRAME_SKIP_COUNTER > 9) then
+		if (RACEENDED ~= 2) and (TIMER > 0) and (TIMER < TIMER_LIMIT) and (FRAMES_NOT_MOVING < 1000) and (PREV_PICKUP < 4) and (FRAME_SKIP_COUNTER > 9) then
 			if ENDSWITCH == 1 then
 				ENDSWITCH = 0
 				FRAMESENDED = 0
@@ -491,7 +504,7 @@ while true do
 			FRAMESENDED = FRAMESENDED + 1
 			SAVESTATESLOT = (SAVESTATESLOT%9)+1
 			load_savestate(SAVESTATESLOT)
-		elseif ((DRIVEBACKWARDS >= 1000) and (ISBACKWARDS == 1)) or (FRAMES_NOT_MOVING >= 1000) then --if drive backwards restart
+		elseif (TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000) then --if too long without progress restart
 			if ENDSWITCH == 0 then
 				ENDSWITCH = 1
 				FRAMESENDED = 0
