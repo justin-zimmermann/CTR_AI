@@ -30,7 +30,7 @@ class TrackImage():
 		"mysterycaves",
 		"blizzardbluff",
 		"sewerspeedway",
-		"canyondingo",
+		"dingocanyon",
 		"papupyramid",
 		"dragonmines",
 		"polarpass",
@@ -270,18 +270,18 @@ class Console:
 
 BATCH_SIZE = 64
 GAMMA = 0.999
-EPS_START = 0.6
-EPS_END = 0.1
+EPS_START = 0.0
+EPS_END = 0.0
 EPS_DECAY = 700000
 TARGET_UPDATE = 30
 NORMALISATION_CONST = 4000000
 lr = 0.0005
 manual_training = False
-is_checkpoint = False
-testing = False
+is_checkpoint = True
+testing = True
 checkpoint = None
 if is_checkpoint:
-	checkpoint = torch.load("ctrai_cv2.model")
+	checkpoint = torch.load("models/ctrai_cv2.model")
 
 crop_size = 20
 n_actions = 3
@@ -305,14 +305,6 @@ else:
 	memory = ReplayMemory(1000000)
 
 steps_done = 0
-steps_done_1 = 0
-steps_done_2 = 0
-steps_done_3 = 0
-steps_done_4 = 0
-steps_done_5 = 0
-steps_done_6 = 0
-steps_done_7 = 0
-steps_done_8 = 0
 previous_random_action = 0
 
 def select_action(state):
@@ -326,6 +318,7 @@ def select_action(state):
 	sample = random.random()
 	if sample > eps_threshold:
 		with torch.no_grad():
+			print(policy_net(state))
 			return 0, policy_net(state).argmax(dim=1), eps_threshold
 	else:
 		if random.random() < 0.95: #increase likelihood of same random actions in a row

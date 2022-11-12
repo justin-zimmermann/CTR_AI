@@ -60,7 +60,7 @@ image.resize(scale)
 
 image.rotate_and_crop(1794450, -1559565, 3118)
 
-#image.image.save("C:/Users/Justin/Documents/CTR/CTR_AI/computer-vision/test.png")
+#image.image.save("C:/Users/Justin/Documents/CTR/CTR_AI/cv2/test.png")
 
 image.save()
 
@@ -74,7 +74,7 @@ print(pil_to_tensor.shape)
 tensor_to_pil = T.ToPILImage()(pil_to_tensor.squeeze_(0))
 print(tensor_to_pil.size)
 
-tensor_to_pil.save("C:/Users/Justin/Documents/CTR/CTR_AI/computer-vision/test2.png")
+tensor_to_pil.save("C:/Users/Justin/Documents/CTR/CTR_AI/cv2/test2.png")
 
 
 

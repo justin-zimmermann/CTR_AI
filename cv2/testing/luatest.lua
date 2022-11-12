@@ -154,6 +154,7 @@ local random_rate = 0.
 local reward_malus = 0.
 local TRACK = 0.
 local IMAGE_PATH
+local TURBO_FLAG = 0
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -197,6 +198,7 @@ while true do
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
 		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
+		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 
 		-- find which track is played
 		if has_value({1771140,1769548,1767356,1765260,1767580,1771508,1762612,1770696,1768044,1764212,1765368,1808472,1767336,1760880,1768752}, POINTER) then 
@@ -326,6 +328,7 @@ while true do
 		-- gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
+		gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
 		--gui.text(XTEXT,160,"Jump : " .. JUMP,"white")
@@ -412,10 +415,10 @@ while true do
 		if table["P1 R2"] then gui.drawBox(300,315,320,329,color,color) else end
 		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",146,314,200,142)
 		scale = 1.
-		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 350, 100, 100)
+		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 250, 200, 200)
 		
 		--gui.drawImageRegion("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/crashcove_aiview.png",get_x(X_POS)-100,get_y(Y_POS)-100,200,200, 2, 350, 100, 100)
-		gui.drawPie(2,350,100,100,360*(-ANGLE)/4095 +45 ,90,"red", "null")
+		gui.drawPie(2,250,200,200,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
 
 		
 	end 

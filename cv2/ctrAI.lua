@@ -50,8 +50,14 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(weapon_mode)
-    joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=BUTTONS[3], R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=weapon_mode}, 1)
+local function press_buttons(weapon_mode, jump_persistence, track)
+	-- jump turbopad ramps (except on polar pass and dingo canyon)
+	if (jump_persistence > 0) and (track ~= 7) and (track ~= 10)
+		then 
+			print('made it')
+			joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=1, R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=weapon_mode}, 1)
+		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=BUTTONS[3], R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=weapon_mode}, 1)
+	end
 end
 
 local function has_value(tab, val)
@@ -156,6 +162,8 @@ local TRACK = 0.
 local IMAGE_PATH
 local FRAMES_NOT_MOVING = 0
 local TIMER_LIMIT = 0
+local TURBO_FLAG = 0
+local JUMP_PERSISTENCE = 0
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -179,6 +187,10 @@ while true do
 		Y_POS_3 = Y_POS_2
 		Y_POS_2 = Y_POS
 		PREV_PICKUP = PICKUP
+		if (TURBO_FLAG == 1) or (TURBO_FLAG==2) then
+			JUMP_PERSISTENCE = 5
+		end
+
 		X_SPD = 		(memory.read_s16_le( POINTER + 0x3A0 ))	-- + 0x88
 		Y_SPD = 		(memory.read_s16_le( POINTER + 0x3A8 ))	-- + 0x90
 		Z_SPD = 		(memory.read_s16_le( POINTER + 0x3A4 ))	-- + 0x8C
@@ -199,6 +211,14 @@ while true do
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
 		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
+		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
+
+		if (TURBO_FLAG == 1) or (TURBO_FLAG==2) 
+			then JUMP_PERSISTENCE = 0
+		elseif (JUMP_PERSISTENCE > 0) then JUMP_PERSISTENCE = JUMP_PERSISTENCE - 1
+		end
+
+
 
 		if (Y_POS == Y_POS_2) and (X_POS == X_POS_2) then
 			FRAMES_NOT_MOVING = FRAMES_NOT_MOVING + 1
@@ -351,6 +371,8 @@ while true do
 		
 		gui.text(XTEXT,80,"X : " .. X_POS,"white")
 		gui.text(XTEXT,100,"Y : " .. Y_POS,"white")
+		gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
+		gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
 		gui.text(XTEXT,280,"Time left to complete lap:", "white")
 		gui.text(XTEXT,300,TIMER .. "/" .. TIMER_LIMIT, "white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
@@ -484,7 +506,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(weapon_mode)
+		    	press_buttons(weapon_mode, JUMP_PERSISTENCE, TRACK)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -523,7 +545,7 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(weapon_mode)
+			press_buttons(weapon_mode, JUMP_PERSISTENCE, TRACK)
 		end
 
 		gui.text(XTEXT,380,string.format("Current reward : %.2f", total_reward),"white")
