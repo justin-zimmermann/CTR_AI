@@ -270,9 +270,7 @@ class Console:
 
 BATCH_SIZE = 64
 GAMMA = 0.999
-EPS_START = 0.0
-EPS_END = 0.0
-EPS_DECAY = 700000
+RANDOMNESS = 0.0
 TARGET_UPDATE = 30
 NORMALISATION_CONST = 4000000
 lr = 0.0005
@@ -310,16 +308,15 @@ previous_random_action = 0
 def select_action(state):
 	global steps_done
 	global previous_random_action
-	eps_threshold = EPS_END + (EPS_START - EPS_END) * max(0., (1. - (steps_done / EPS_DECAY)))
 	steps_done += 1
-	if steps_done % 100000 == 0:
+	if steps_done % 50000 == 0:
 		print(steps_done)
 	
 	sample = random.random()
-	if sample > eps_threshold:
+	if sample > RANDOMNESS:
 		with torch.no_grad():
-			print(policy_net(state))
-			return 0, policy_net(state).argmax(dim=1), eps_threshold
+			#print(policy_net(state))
+			return 0, policy_net(state).argmax(dim=1), RANDOMNESS
 	else:
 		if random.random() < 0.95: #increase likelihood of same random actions in a row
 			action = previous_random_action
@@ -327,9 +324,9 @@ def select_action(state):
 			action = (previous_random_action + random.randrange(1, n_actions)) % n_actions
 		previous_random_action = action
 		if manual_training:
-			return 2, torch.tensor([action]), eps_threshold
+			return 2, torch.tensor([action]), RANDOMNESS
 		else:
-			return 1, torch.tensor([action]), eps_threshold
+			return 1, torch.tensor([action]), RANDOMNESS
 
 def optimize_model():
 	if len(memory) < BATCH_SIZE:
@@ -401,6 +398,10 @@ for i_episode in range(num_episodes):
 		console.send("Reward received\n")
 		if (reward_float == 5000):
 			break
+		if reward_float < 0.: #increase randomness if AI gets it wrong
+			RANDOMNESS = min(1., RANDOMNESS + 0.03)
+		else: #quickly put back randomness to zero if AI gets it right
+			RANDOMNESS = max(0., RANDOMNESS - 0.15)
 
 		inputs = list(map(float, console.recv().split()))
 		#theta = np.arctan2(inputs[0], inputs[1])

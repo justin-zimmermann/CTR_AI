@@ -371,8 +371,8 @@ while true do
 		
 		gui.text(XTEXT,80,"X : " .. X_POS,"white")
 		gui.text(XTEXT,100,"Y : " .. Y_POS,"white")
-		gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
-		gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
+		--gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
+		--gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
 		gui.text(XTEXT,280,"Time left to complete lap:", "white")
 		gui.text(XTEXT,300,TIMER .. "/" .. TIMER_LIMIT, "white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
