@@ -325,7 +325,7 @@ while true do
 		
 		TOT_SPD = math.floor(math.sqrt(X_SPD*X_SPD+Y_SPD*Y_SPD))
 
-		-- gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
+		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
 		gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
