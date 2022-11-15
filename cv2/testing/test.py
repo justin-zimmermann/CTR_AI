@@ -189,10 +189,10 @@ class TrackImage():
 		self.crop.save("C:/Users/Justin/Documents/CTR/CTR_AI/cv2/testing/test.png")
 
 image = TrackImage(20)
-image.resize(10)
+image.resize(6)
 
 
-image.rotate_and_crop(-177285, 3261, 1571, 51142, 2)
+image.rotate_and_crop(-364594, -2604406, 3471, 88997, 16)
 
 image.save()
 

@@ -224,12 +224,20 @@ while true do
 		JUMP = 			(memory.read_s8( POINTER + 0x40D ))
 		RNG = 			(memory.read_u16_le( 0x8D424 ))
 		LAPPROG = 		(memory.read_s32_le( POINTER + 0x488 ))
-		LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
+		if (HASH=='07FE354E') then
+			LAPCOUNTER = 		(memory.read_u8( POINTER + 0x1D3F44 - 1916676 ))	
+		else
+			LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
+		end
 		RACEENDED = 		(memory.read_u8( POINTER + 0x2CB )) % 16
 		TIMER = 		(memory.read_s32_le( POINTER + 0x514 ))
 		DRIVEBACKWARDS =(memory.read_s16_le( POINTER + 0x490 ))
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
-		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
+		if (HASH=='07FE354E') then
+			WALL = 			(memory.read_u16_le( POINTER + 0x1D3F56 - 1916676 ))
+		else
+			WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
+		end
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		POSITION = (memory.read_u16_le(POINTER + 0x482))
@@ -552,7 +560,7 @@ while true do
 				(
 					(MODE == 'Cup')
 					and
-					(FRAMESENDED > 360)
+					(FRAMESENDED > 600)
 					and
 					((TRACK == 3) or (TRACK == 6) or (TRACK == 12) or (TRACK == 16))
 				)
@@ -594,7 +602,6 @@ while true do
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
 			press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED)
 		end
-
 		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
 		gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
 		gui.text(XTEXT,200,string.format("Best reward : %.2f", best_reward),"white")

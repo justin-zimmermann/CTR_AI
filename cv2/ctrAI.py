@@ -275,8 +275,8 @@ TARGET_UPDATE = 30
 NORMALISATION_CONST = 4000000
 lr = 0.0005
 manual_training = False
-is_checkpoint = True
-testing = True
+is_checkpoint = False
+testing = False
 checkpoint = None
 if is_checkpoint:
 	checkpoint = torch.load("models/ctrai_cv2.model")
@@ -361,7 +361,7 @@ status = ""
 first_connection = True
 print("test")
 image = TrackImage(crop_size)
-image.resize(10)
+image.resize(6)
 
 num_episodes = 10000
 

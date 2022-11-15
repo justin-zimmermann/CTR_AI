@@ -194,12 +194,20 @@ while true do
 		JUMP = 			(memory.read_s8( POINTER + 0x40D ))
 		RNG = 			(memory.read_u16_le( 0x8D424 ))
 		LAPPROG = 		(memory.read_s32_le( POINTER + 0x488 ))
-		LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
+		if (HASH=='07FE354E') then
+			LAPCOUNTER = 		(memory.read_u8( POINTER + 0x1D3F44 - 1916676 ))	
+		else
+			LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
+		end
 		RACEENDED = 		(memory.read_u8( POINTER + 0x2CB )) % 16
 		TIMER = 		(memory.read_s32_le( POINTER + 0x514 ))
 		DRIVEBACKWARDS =(memory.read_s16_le( POINTER + 0x490 ))
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
-		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
+		if (HASH=='07FE354E') then
+			WALL = 			(memory.read_u16_le( POINTER + 0x1D3F56 - 1916676 ))
+		else
+			WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
+		end
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		TEST = (memory.read_u32_le(POINTER + 0x4EC))
@@ -333,7 +341,7 @@ while true do
 		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
-		gui.text(XTEXT,120,"test: " .. TEST,"white")
+		gui.text(XTEXT,120,"test: " .. LAPCOUNTER,"white")
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
 		--gui.text(XTEXT,160,"Jump : " .. JUMP,"white")
