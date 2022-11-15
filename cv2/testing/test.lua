@@ -156,7 +156,8 @@ local TRACK = 0.
 local IMAGE_PATH
 local TURBO_FLAG = 0
 
-local CUP = 0
+local TEST = 0
+local WEAPON = 0
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -194,14 +195,15 @@ while true do
 		RNG = 			(memory.read_u16_le( 0x8D424 ))
 		LAPPROG = 		(memory.read_s32_le( POINTER + 0x488 ))
 		LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
-		RACEENDED = 		(memory.read_s8( POINTER + 0x2CB ))
+		RACEENDED = 		(memory.read_u8( POINTER + 0x2CB )) % 16
 		TIMER = 		(memory.read_s32_le( POINTER + 0x514 ))
 		DRIVEBACKWARDS =(memory.read_s16_le( POINTER + 0x490 ))
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
 		WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
-		CUP = (memory.read_u16_le(POINTER + 0x482))
+		TEST = (memory.read_u32_le(POINTER + 0x4EC))
+		WEAPON = (memory.read_u8(POINTER + 0x36))
 
 		-- find which track is played
 		if has_value({1771140,1769548,1767356,1765260,1767580,1771508,1762612,1770696,1768044,1764212,1765368,1808472,1767336,1760880,1768752,1841684}, POINTER) then 
@@ -331,7 +333,7 @@ while true do
 		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
-		gui.text(XTEXT,120,"cup: " .. CUP,"white")
+		gui.text(XTEXT,120,"test: " .. TEST,"white")
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
 		--gui.text(XTEXT,160,"Jump : " .. JUMP,"white")

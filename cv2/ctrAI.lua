@@ -50,13 +50,17 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(weapon_mode, jump_persistence, track)
+local function press_buttons(jump_persistence, track, frame, raceended)
+	--press circle every second
+	circle = 0
+	if (raceended == 0) and (frame%18 < 2) then
+		circle = 1
+	end
 	-- jump turbopad ramps (except on polar pass and dingo canyon)
 	if (jump_persistence > 0) and (track ~= 7) and (track ~= 10)
 		then 
-			print('made it')
-			joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=1, R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=weapon_mode}, 1)
-		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=BUTTONS[3], R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=weapon_mode}, 1)
+			joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=1, R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
+		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=BUTTONS[3], R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
 	end
 end
 
@@ -82,6 +86,14 @@ function average (a)
 	return sum / count
 end
 
+function joypad_y(oldy)
+	return newy1 + ((oldy-oldy1)/(oldy2-oldy1))*(newy2-newy1)
+end
+
+function joypad_x(oldx)
+	return newx1 + ((oldx-oldx1)/(oldx2-oldx1))*(newx2-newx1)
+end
+
 function Bit(num, n_bit)
     -- returns bit in position n_bit
     local t={} -- will contain the bits
@@ -98,7 +110,6 @@ local function end_race(frame)
 	elseif (frame % 120 == 61) then BUTTONS = {0, 0, 0, 0, 0, 1, 0, 0, 0}
 	else BUTTONS = {0, 0, 0, 0, 0, 0, 0, 0, 0}
 	end
-	press_buttons()
 end
 
 local function restart_race(frame)
@@ -109,7 +120,6 @@ local function restart_race(frame)
 	elseif frame < 43 then BUTTONS = {0, 0, 0, 0, 0, 1, 0, 0, 0}
 	else BUTTONS = {0, 0, 0, 0, 0, 0, 0, 0, 0}
 	end
-	press_buttons()
 end
 
 local function load_savestate(SAVESTATESLOT)
@@ -140,9 +150,6 @@ local YBOX = 55
 local XBOX2 = 10
 local YBOX2 = 350
 
---race with weapons: set this to 1, otherwise 0
-local weapon_mode = 1
-
 local PREV_LAPPROG, LAPPROG, LAPCOUNTER, RACEENDED, TIMER, DRIVEBACKWARDS, ISBACKWARDS
 local PICKUP, PREV_PICKUP, WALL
 local FRAMESENDED = 0
@@ -166,6 +173,14 @@ local TIMER_LIMIT = 0
 local TURBO_FLAG = 0
 local JUMP_PERSISTENCE = 0
 local POSITION = 0
+oldx1 = 146
+oldx2 = 346
+oldy1 = 314
+oldy2 = 456
+newx1 = 2
+newx2 = 152
+newy1 = 220
+newy2 = 340
 
 -- modes: Cup, Race, Adventure
 local MODE = 'Cup'
@@ -210,7 +225,7 @@ while true do
 		RNG = 			(memory.read_u16_le( 0x8D424 ))
 		LAPPROG = 		(memory.read_s32_le( POINTER + 0x488 ))
 		LAPCOUNTER = 		(memory.read_u8( POINTER + 0x44 ))
-		RACEENDED = 		(memory.read_s8( POINTER + 0x2CB ))
+		RACEENDED = 		(memory.read_u8( POINTER + 0x2CB )) % 16
 		TIMER = 		(memory.read_s32_le( POINTER + 0x514 ))
 		DRIVEBACKWARDS =(memory.read_s16_le( POINTER + 0x490 ))
 		ISBACKWARDS = Bit((memory.read_s32_le( POINTER + 0x2C8 )), 9)
@@ -375,17 +390,17 @@ while true do
 		-- gui.text(XTEXT,200,"Charge : " .. string.format("%08X", POINTER + 0x3E2),"white")
 		--gui.text(XTEXT,200,string.format("%08X", POINTER),"white")
 		
-		gui.text(XTEXT,80,"X : " .. X_POS,"white")
-		gui.text(XTEXT,100,"Y : " .. Y_POS,"white")
+		gui.text(XTEXT,20,"X : " .. X_POS,"white")
+		gui.text(XTEXT,40,"Y : " .. Y_POS,"white")
 		--gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
 		--gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
-		gui.text(XTEXT,280,"Time left to complete lap:", "white")
-		gui.text(XTEXT,300,TIMER .. "/" .. TIMER_LIMIT, "white")
+		gui.text(XTEXT,60,"Time left to complete lap:", "white")
+		gui.text(XTEXT,80,TIMER .. "/" .. TIMER_LIMIT, "white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
 		--gui.text(XTEXT,300,"Angle : " .. ANGLE,"white")
 		--gui.text(XTEXT,300,"Track : " .. POINTER,"white")
-		gui.text(XTEXT,320,"Lap Progress : " .. LAPPROG,"white")
-		gui.text(XTEXT,340,"Lap " .. LAPCOUNTER+1,"white")
+		gui.text(XTEXT,100,"Lap Progress : " .. LAPPROG,"white")
+		gui.text(XTEXT,120,"Lap " .. LAPCOUNTER+1,"white")
 		--gui.text(XTEXT,340,"Drive Backwards : " .. DRIVEBACKWARDS,"white")
 		-- if TOT_SPD>20000 then 
 			-- savestate.saveslot(9)
@@ -434,15 +449,16 @@ while true do
 		--	memory.write_s8( POINTER + 0x2CB, 2)
 		--end
 
+
 		table=joypad.getimmediate()
 		action = 0
 		if is_random == 0 then color = "cyan" else color = "darkred" end
 		if table["P1 Left"] then 
-			gui.drawBox(164,375,176,385,color,color)
+			gui.drawBox(joypad_x(164),joypad_y(375),joypad_x(176),joypad_y(385),color,color)
 			action = 1 
 		else end
 		if table["P1 Right"] then 
-			gui.drawBox(188,375,200,385,color,color)
+			gui.drawBox(joypad_x(188),joypad_y(375),joypad_x(200),joypad_y(385),color,color)
 			action = 2
 		else end
 		if table["P1 Up"] then gui.drawBox(177,362,187,377,color,color) else end
@@ -450,19 +466,19 @@ while true do
 		if table["P1 Select"] then gui.drawBox(214,377,231,383,color,color) else end
 		if table["P1 Start"] then gui.drawBox(261,377,274,383,color,color) else end
 		if table["P1 Square"] then gui.drawBox(242,373,298,390,color,color) else end
-		if table["P1 Circle"] then gui.drawBox(320,373,334,387,color,color) else end
+		if table["P1 Circle"] then gui.drawBox(joypad_x(320),joypad_y(373),joypad_x(334),joypad_y(387),color,color) else end
 		if table["P1 Triangle"] then gui.drawBox(302,356,316,370,color,color) else end
-		if table["P1 Cross"] then gui.drawBox(300,391,316,406,color,color) else end
-		if table["P1 L1"] then gui.drawBox(174,334,190,343,color,color) else end
+		if table["P1 Cross"] then gui.drawBox(joypad_x(300),joypad_y(391),joypad_x(316),joypad_y(406),color,color) else end
+		if table["P1 L1"] then gui.drawBox(joypad_x(174),joypad_y(334),joypad_x(190),joypad_y(343),color,color) else end
 		if table["P1 L2"] then gui.drawBox(173,314,191,327,color,color) else end
 		if table["P1 R1"] then gui.drawBox(301,334,315,343,color,color) else end
 		if table["P1 R2"] then gui.drawBox(300,315,320,329,color,color) else end
-		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",146,314,200,142)
+		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",newx1,newy1,newx2-newx1,newy2-newy1)
 		scale = 1.
-		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 350, 100, 100)
+		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 360, 100, 100)
 		
 		--gui.drawImageRegion("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/crashcove_aiview.png",get_x(X_POS)-100,get_y(Y_POS)-100,200,200, 2, 350, 100, 100)
-		gui.drawPie(2,350,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
+		gui.drawPie(2,360,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
 
 		if is_random == 2 and ENDSWITCH == 0 and PREV_PICKUP < 4 then --manual training
 			tcp:send(action)
@@ -512,7 +528,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(weapon_mode, JUMP_PERSISTENCE, TRACK)
+		    	press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -536,7 +552,7 @@ while true do
 				(
 					(MODE == 'Cup')
 					and
-					(FRAMESENDED > 2000)
+					(FRAMESENDED > 360)
 					and
 					((TRACK == 3) or (TRACK == 6) or (TRACK == 12) or (TRACK == 16))
 				)
@@ -549,9 +565,9 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 0, 0)
+				press_buttons(0, 0, 0, 15)
 			end
-		elseif (TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000) then --if too long without progress restart
+		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
 				ENDSWITCH = 1
 				FRAMESENDED = 0
@@ -576,16 +592,16 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(weapon_mode, JUMP_PERSISTENCE, TRACK)
+			press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED)
 		end
 
-		gui.text(XTEXT,380,string.format("Current reward : %.2f", total_reward),"white")
-		gui.text(XTEXT,400,string.format("Average reward : %.2f", average_reward),"white")
-		gui.text(XTEXT,420,string.format("Best reward : %.2f", best_reward),"white")
-		gui.text(XTEXT,440,"Attempts : " .. n_episode,"white")
-		gui.text(XTEXT,360,string.format("Random: %.2f %%", 100*tonumber(random_rate)),"white")
+		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
+		gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
+		gui.text(XTEXT,200,string.format("Best reward : %.2f", best_reward),"white")
+		gui.text(XTEXT,240,"Attempts : " .. n_episode,"white")
+		gui.text(XTEXT,140,string.format("Random: %.2f %%", 100*tonumber(random_rate)),"white")
 		if (MODE == 'Cup') or (MODE == 'Race') then
-			gui.text(XTEXT,340,string.format("Average finish : %.2f", average_finish),"white")
+			gui.text(XTEXT,220,string.format("Average finish : %.2f", average_finish),"white")
 		end
 	end 
 	emu.frameadvance()
