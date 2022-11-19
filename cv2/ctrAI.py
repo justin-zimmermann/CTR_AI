@@ -104,7 +104,7 @@ class TrackImage():
 		(1229., 1209.),
 		(1050., 801.),
 		(1485., 1181.),
-		(1339., 1271.),
+		(1339., 1400.),
 		(1287., 1226.),
 		(1244., 974.),
 		(1503., 1158.)
@@ -130,8 +130,10 @@ class TrackImage():
 			else:
 				image_index = 1
 		if track_id == 8:
-			if (progress < 59000):
+			if (progress < 53000):
 				image_index = 0
+			elif (progress < 59000):
+				image_index = 2
 			else:
 				image_index = 1
 		if track_id == 9:
@@ -147,6 +149,8 @@ class TrackImage():
 		if track_id == 12:
 			if (progress < 38000 or progress > 137000):
 				image_index = 0
+			elif progress > 83000:
+				image_index = 2
 			else:
 				image_index = 1
 		if track_id == 13:
@@ -170,6 +174,20 @@ class TrackImage():
 				image_index = 2
 			else:
 				image_index = 3
+		if track_id == 16:
+			if (progress < 84000 and progress > 40000):
+				image_index = 2
+			elif (progress < 40001 and progress > 21000):
+				image_index = 1
+			else:
+				image_index = 0
+		if track_id == 17:
+			if (progress < 41000 and progress > 36500):
+				image_index = 1
+			elif (progress < 36501 and progress > 32000):
+				image_index = 0
+			else:
+				image_index = 2
 
 		a = self.get_x(a, track_id)
 		b = self.get_y(b, track_id)
@@ -275,11 +293,11 @@ TARGET_UPDATE = 30
 NORMALISATION_CONST = 4000000
 lr = 0.0005
 manual_training = False
-is_checkpoint = False
-testing = False
+is_checkpoint = True
+testing = True
 checkpoint = None
 if is_checkpoint:
-	checkpoint = torch.load("models/ctrai_cv2.model")
+	checkpoint = torch.load("models/ctrai_cv2_450_2_92.model")
 
 crop_size = 20
 n_actions = 3
