@@ -50,17 +50,25 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(jump_persistence, track, frame, raceended)
+local function press_buttons(jump_persistence, track, frame, raceended, tnt)
 	--press circle every second
 	circle = 0
+	l1 = 0
+	r1 = 0
 	if (raceended == 0) and (frame%18 < 2) then
 		circle = 1
+	end
+	if (raceended == 0) and (tnt > 0) then
+		l1 = 1
+		if frame % 2 == 0 then
+			r1 = 1
+		end
 	end
 	-- jump turbopad ramps (except on polar pass and dingo canyon)
 	if (jump_persistence > 0) and (track ~= 7) and (track ~= 10)
 		then 
 			joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=1, R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
-		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=BUTTONS[3], R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
+		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=l1, R1=r1, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
 	end
 end
 
@@ -173,6 +181,7 @@ local TIMER_LIMIT = 0
 local TURBO_FLAG = 0
 local JUMP_PERSISTENCE = 0
 local POSITION = 0
+local TNT = 0
 oldx1 = 146
 oldx2 = 346
 oldy1 = 314
@@ -183,7 +192,7 @@ newy1 = 220
 newy2 = 340
 
 -- modes: Cup, Race, Adventure
-local MODE = 'Race'
+local MODE = 'Cup'
 
 local HASH = gameinfo.getromhash()
 print(HASH)
@@ -241,6 +250,7 @@ while true do
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		POSITION = (memory.read_u16_le(POINTER + 0x482))
+		TNT = (memory.read_u8(POINTER + 0x1F061C - 2033160))
 
 		if (TURBO_FLAG == 1) or (TURBO_FLAG==2) 
 			then JUMP_PERSISTENCE = 0
@@ -552,7 +562,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED)
+		    	press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED, TNT)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -589,7 +599,7 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 0, 0, 15)
+				press_buttons(0, 0, 0, 15, 0)
 			end
 		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
@@ -616,7 +626,7 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED)
+			press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED, TNT)
 		end
 		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
 		gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")

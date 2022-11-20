@@ -210,7 +210,7 @@ while true do
 		end
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
-		TEST = (memory.read_u32_le(POINTER + 0x4EC))
+		TEST = (memory.read_u8(POINTER + 0x1F061C - 2033160))
 		WEAPON = (memory.read_u8(POINTER + 0x36))
 
 		-- find which track is played
@@ -357,7 +357,7 @@ while true do
 		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
-		gui.text(XTEXT,120,"test: " .. LAPCOUNTER,"white")
+		gui.text(XTEXT,120,"test: " .. TEST,"white")
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
 		--gui.text(XTEXT,160,"Jump : " .. JUMP,"white")
