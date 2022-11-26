@@ -50,26 +50,35 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(jump_persistence, track, frame, raceended, tnt)
-	--press circle every second
+local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag)
 	circle = 0
 	l1 = 0
 	r1 = 0
-	if (raceended == 0) and (frame%18 < 2) then
+	down = 0
+	r2 = 0
+	-- use item every 3 seconds
+	if (raceended == 0) and (frame < 20) then
 		circle = 1
 	end
-	if (raceended == 0) and (tnt > 0) then
-		l1 = 1
-		if frame % 2 == 0 then
+	-- if first, look backwards and shoot item backwards (back bomb and missile)
+	if (raceended == 0) and (position == 0) and ((frame > 170) or (frame < 30)) then
+		down = 1
+		r2 = 1
+	end
+	-- froggy if TNT (or speed high enough)
+	if (raceended == 0) and ((tnt > 0) or ((ram_spd > 15000) and (turbo_flag ~=2))) then
+		r1 = 1
+		if (frame%4 < 2) then
 			r1 = 1
+		else
+			l1 = 1
 		end
+	-- jump off edges
+	elseif (raceended == 0) and (jump_switch == 5) and (ram_spd > 10000) then
+		r1 = 1
 	end
-	-- jump turbopad ramps (except on polar pass and dingo canyon)
-	if (jump_persistence > 0) and (track ~= 7) and (track ~= 10)
-		then 
-			joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=1, R1=BUTTONS[4], Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
-		else joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=l1, R1=r1, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=BUTTONS[8], Start=BUTTONS[9], Circle=circle}, 1)
-	end
+	joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=l1, R1=r1, R2=r2, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=down, Start=BUTTONS[9], Circle=circle}, 1)
+
 end
 
 local function has_value(tab, val)
@@ -143,11 +152,9 @@ local function get_y(y, track_id)
 end
 
 local X_POS, Y_POS, Z_POS, X_SPD, Y_SPD, Z_SPD
-local X_POS_2, Y_POS_2, X_POS_3, Y_POS_3
+local X_POS_2, Y_POS_2
 local JUMP, ANGLE, RNG
-local X_ANC = 0
-local Y_ANC = 0
-local SPD_CALC = 0
+local FRAME = 0
 
 local XTEXT = 2
 local YTEXT = 60
@@ -179,9 +186,9 @@ local IMAGE_PATH
 local FRAMES_NOT_MOVING = 0
 local TIMER_LIMIT = 0
 local TURBO_FLAG = 0
-local JUMP_PERSISTENCE = 0
 local POSITION = 0
 local TNT = 0
+local JUMP_SWITCH = 0
 oldx1 = 146
 oldx2 = 346
 oldy1 = 314
@@ -200,6 +207,7 @@ print(HASH)
 
 
 while true do
+	FRAME = (FRAME + 1) % 180
 	--memory.write_s8(0x8D2B4, 3)
 	--POINTER = memory.read_u32_le( 0x08D674 ) - 0x80000000
 	--POINTER = memory.read_u32_le( 0x097FFC ) - 0x80000000
@@ -211,14 +219,11 @@ while true do
 
 
 	if (POINTER > 0) then
-		X_POS_3 = X_POS_2
+
 		X_POS_2 = X_POS
-		Y_POS_3 = Y_POS_2
 		Y_POS_2 = Y_POS
+
 		PREV_PICKUP = PICKUP
-		if (TURBO_FLAG == 1) or (TURBO_FLAG==2) then
-			JUMP_PERSISTENCE = 5
-		end
 
 		X_SPD = 		(memory.read_s16_le( POINTER + 0x3A0 ))	-- + 0x88
 		Y_SPD = 		(memory.read_s16_le( POINTER + 0x3A8 ))	-- + 0x90
@@ -251,13 +256,11 @@ while true do
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		POSITION = (memory.read_u16_le(POINTER + 0x482))
 		TNT = (memory.read_u8(POINTER + 0x1F061C - 2033160))
-
-		if (TURBO_FLAG == 1) or (TURBO_FLAG==2) 
-			then JUMP_PERSISTENCE = 0
-		elseif (JUMP_PERSISTENCE > 0) then JUMP_PERSISTENCE = JUMP_PERSISTENCE - 1
+		if (JUMP < 0) and (JUMP_SWITCH == 0) then
+			JUMP_SWITCH = 5
+		elseif (JUMP == 0) and JUMP_SWITCH > 0 then
+			JUMP_SWITCH = JUMP_SWITCH - 1
 		end
-
-
 
 		if (Y_POS == Y_POS_2) and (X_POS == X_POS_2) then
 			FRAMES_NOT_MOVING = FRAMES_NOT_MOVING + 1
@@ -426,15 +429,16 @@ while true do
 		
 		gui.text(XTEXT,20,"X : " .. X_POS,"white")
 		gui.text(XTEXT,40,"Y : " .. Y_POS,"white")
+		gui.text(XTEXT,60,"Speed (RAM) : " .. RAM_SPD,"white")
 		--gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
 		--gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
-		gui.text(XTEXT,60,"Time left to complete lap:", "white")
-		gui.text(XTEXT,80,TIMER .. "/" .. TIMER_LIMIT, "white")
+		gui.text(XTEXT,80,"Time left to complete lap:", "white")
+		gui.text(XTEXT,100,TIMER .. "/" .. TIMER_LIMIT, "white")
 		--gui.text(XTEXT,280,"Z : " .. Z_POS,"white")
 		--gui.text(XTEXT,300,"Angle : " .. ANGLE,"white")
 		--gui.text(XTEXT,300,"Track : " .. POINTER,"white")
-		gui.text(XTEXT,100,"Lap Progress : " .. LAPPROG,"white")
-		gui.text(XTEXT,120,"Lap " .. LAPCOUNTER+1,"white")
+		gui.text(XTEXT,120,"Lap Progress : " .. LAPPROG,"white")
+		--gui.text(XTEXT,120,"Lap " .. LAPCOUNTER+1,"white")
 		--gui.text(XTEXT,340,"Drive Backwards : " .. DRIVEBACKWARDS,"white")
 		-- if TOT_SPD>20000 then 
 			-- savestate.saveslot(9)
@@ -477,8 +481,8 @@ while true do
 		--gui.drawBox(XBOX2, YBOX2, XBOX2 + RESERVE, YBOX2 + 20, "black", COL)
 		--gui.drawBox(XBOX2, YBOX2, XBOX2 + 120, YBOX2 + 20, "white")
 		
-		X_ANC = X_POS
-		Y_ANC = Y_POS
+		--X_ANC = X_POS
+		--Y_ANC = Y_POS
 		--if LAPCOUNTER == 1 then
 		--	memory.write_s8( POINTER + 0x2CB, 2)
 		--end
@@ -495,18 +499,18 @@ while true do
 			gui.drawBox(joypad_x(188),joypad_y(375),joypad_x(200),joypad_y(385),color,color)
 			action = 2
 		else end
-		if table["P1 Up"] then gui.drawBox(177,362,187,377,color,color) else end
-		if table["P1 Down"] then gui.drawBox(177,383,187,398,color,color) else end
-		if table["P1 Select"] then gui.drawBox(214,377,231,383,color,color) else end
-		if table["P1 Start"] then gui.drawBox(261,377,274,383,color,color) else end
-		if table["P1 Square"] then gui.drawBox(242,373,298,390,color,color) else end
+		if table["P1 Up"] then gui.drawBox(joypad_x(177),joypad_y(362),joypad_x(187),joypad_y(377),color,color) else end
+		if table["P1 Down"] then gui.drawBox(joypad_x(177),joypad_y(383),joypad_x(187),joypad_y(398),color,color) else end
+		if table["P1 Select"] then gui.drawBox(joypad_x(214),joypad_y(377),joypad_x(231),joypad_y(383),color,color) else end
+		if table["P1 Start"] then gui.drawBox(joypad_x(261),joypad_y(377),joypad_x(274),joypad_y(383),color,color) else end
+		if table["P1 Square"] then gui.drawBox(joypad_x(242),joypad_y(373),joypad_x(298),joypad_y(390),color,color) else end
 		if table["P1 Circle"] then gui.drawBox(joypad_x(320),joypad_y(373),joypad_x(334),joypad_y(387),color,color) else end
-		if table["P1 Triangle"] then gui.drawBox(302,356,316,370,color,color) else end
+		if table["P1 Triangle"] then gui.drawBox(joypad_x(302),joypad_y(356),joypad_x(316),joypad_y(370),color,color) else end
 		if table["P1 Cross"] then gui.drawBox(joypad_x(300),joypad_y(391),joypad_x(316),joypad_y(406),color,color) else end
 		if table["P1 L1"] then gui.drawBox(joypad_x(174),joypad_y(334),joypad_x(190),joypad_y(343),color,color) else end
-		if table["P1 L2"] then gui.drawBox(173,314,191,327,color,color) else end
-		if table["P1 R1"] then gui.drawBox(301,334,315,343,color,color) else end
-		if table["P1 R2"] then gui.drawBox(300,315,320,329,color,color) else end
+		if table["P1 L2"] then gui.drawBox(joypad_x(173),joypad_y(314),joypad_x(191),joypad_y(327),color,color) else end
+		if table["P1 R1"] then gui.drawBox(joypad_x(301),joypad_y(334),joypad_x(315),joypad_y(343),color,color) else end
+		if table["P1 R2"] then gui.drawBox(joypad_x(300),joypad_y(315),joypad_x(320),joypad_y(329),color,color) else end
 		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",newx1,newy1,newx2-newx1,newy2-newy1)
 		scale = 1.
 		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 360, 100, 100)
@@ -547,7 +551,7 @@ while true do
 				feedback, status, partial = tcp:receive()
 			end
 			send_str = ""
-			send_str = X_POS .. " " .. Y_POS .. " " .. ANGLE .. " " .. LAPPROG .. " " .. TRACK -- .. " " .. X_POS_2 .. " " .. Y_POS_2 .. " " .. X_POS_3 .. " " .. Y_POS_3
+			send_str = X_POS .. " " .. Y_POS .. " " .. ANGLE .. " " .. LAPPROG .. " " .. TRACK
 	        tcp:send(send_str)
 			action, status, partial= tcp:receive()
 			if action == nil then
@@ -562,7 +566,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED, TNT)
+		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -599,7 +603,7 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 0, 0, 15, 0)
+				press_buttons(0, 15, 0, -1, 0, 0, 0)
 			end
 		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
@@ -626,7 +630,7 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(JUMP_PERSISTENCE, TRACK, FRAMESENDED, RACEENDED, TNT)
+			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG)
 		end
 		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
 		gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
@@ -636,6 +640,8 @@ while true do
 		if (MODE == 'Cup') or (MODE == 'Race') then
 			gui.text(XTEXT,220,string.format("Average finish : %.2f", average_finish),"white")
 		end
+		gui.text(XTEXT,260,"Jump switch : " .. JUMP_SWITCH,"white")
+		gui.text(XTEXT,280,"Jump : " .. JUMP,"white")
 	end 
 	emu.frameadvance()
 	

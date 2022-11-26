@@ -329,6 +329,43 @@ else:
 steps_done = 0
 previous_random_action = 0
 
+#========================================================================
+#            POWERSLIDE MODEL PARAMETERS
+#========================================================================
+
+BATCH_SIZE2 = 64
+GAMMA2 = 0.999
+TARGET_UPDATE2 = 30
+lr2 = 0.001
+manual_training2 = False
+is_checkpoint2 = False
+testing2 = False
+checkpoint2 = None
+if is_checkpoint2:
+	checkpoint2 = torch.load("models/non_existent.model")
+
+crop_size2 = 20
+n_actions2 = 2
+
+policy_net2 = DQN(crop_size2, n_actions2).to(device)
+if is_checkpoint2:
+	policy_net2.load_state_dict(checkpoint2['model_state_dict'])
+	#for name, param in policy_net.named_parameters():
+		#if param.requires_grad:
+			#print(name, param.data)
+target_net2 = DQN(crop_size2, n_actions2).to(device)
+target_net2.load_state_dict(policy_net2.state_dict())
+target_net2.eval()
+
+
+optimizer2 = optim.RMSprop(policy_net2.parameters(), lr=lr2)
+if is_checkpoint2:
+	optimizer2.load_state_dict(checkpoint2['optimizer_state_dict'])
+	memory2 = checkpoint2['memory']
+else:
+	memory2 = ReplayMemory(500000)
+
+steps_done2 = 0
 
 #=========================================================
 #               MORE FUNCTIONS
@@ -347,7 +384,7 @@ def select_action(state):
 			#print(policy_net(state))
 			return 0, policy_net(state).argmax(dim=1), RANDOMNESS
 	else:
-		if random.random() < 0.90: #increase likelihood of same random actions in a row
+		if random.random() < 0.95: #increase likelihood of same random actions in a row
 			action = previous_random_action
 		else:
 			action = (previous_random_action + random.randrange(1, n_actions)) % n_actions
@@ -383,6 +420,31 @@ def optimize_model():
 		param.grad.data.clamp_(-1, 1) #is that really good?
 	optimizer.step()
 
+def optimize_model2():
+	if len(memory2) < BATCH_SIZE2:
+		return
+	transitions = memory2.sample(BATCH_SIZE2)
+	batch = Transition(*zip(*transitions))
+
+	next_state_batch = torch.cat(batch.next_state)
+	state_batch = torch.cat(batch.state)
+	action_batch = torch.cat(batch.action)
+	reward_batch = torch.cat(batch.reward)
+
+	
+	state_action_values = policy_net2(state_batch).gather(1, action_batch.unsqueeze(-1))
+
+
+	next_state_values = target_net2(next_state_batch).max(1)[0].detach()
+	expected_state_action_values = (next_state_values * GAMMA2) + reward_batch
+
+	loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+
+	optimizer2.zero_grad()
+	loss.backward()
+	for param in policy_net2.parameters():
+		param.grad.data.clamp_(-1, 1) #is that really good?
+	optimizer2.step()
 
 #=================================================================
 #                      MAIN LOOP
@@ -431,8 +493,6 @@ for i_episode in range(num_episodes):
 		console.send("Reward received\n")
 		if (reward_float == 5000):
 			break
-		if reward_float <= 50.:
-			RANDOMNESS = min(1., RANDOMNESS + 0.50)
 		if reward_float < 0.: #increase randomness if AI gets it wrong
 			RANDOMNESS = min(1., RANDOMNESS + 0.03)
 		else: #quickly put back randomness to zero if AI gets it right
