@@ -70,14 +70,18 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag, turbo_charge)
+local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag, turbo_charge, weapon)
 	circle = 0
 	l1 = 0
 	r1 = 0
 	down = 0
 	r2 = 0
-	-- use item every 3 seconds
-	if (raceended == 0) and (frame < 20) then
+	-- use item every 3 seconds or when item is rolling to get it faster
+	if weapon > 0 then
+		if weapon < 65 then
+			circle = 1
+		end
+	elseif (raceended == 0) and (frame < 10) then
 		circle = 1
 	end
 	-- if first, look backwards and shoot item backwards (back bomb and missile)
@@ -87,7 +91,6 @@ local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_swit
 	end
 	-- froggy if TNT (or speed high enough)
 	if (raceended == 0) and ((tnt > 0) or ((ram_spd > 15000) and (turbo_flag ~=2))) then
-		r1 = 1
 		if (frame%4 < 2) then
 			r1 = 1
 		else
@@ -196,10 +199,11 @@ local finish = {}
 local total_reward = 0.
 local best_reward = 0
 local n_episode = 0
-local n_episode_track = {}
+local finished_attempts = 0
+local finished_attempts_track = {}
 for i = 1,18,1
 do
-	n_episode_track[i] = 0
+	finished_attempts_track[i] = 0
 end
 local average_track = {}
 for i = 1,36,1
@@ -246,6 +250,7 @@ local TURBO_FLAG = 0
 local POSITION = 0
 local TNT = 0
 local JUMP_SWITCH = 0
+local WEAPON = 0
 oldx1 = 146
 oldx2 = 346
 oldy1 = 314
@@ -313,6 +318,7 @@ while true do
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		POSITION = (memory.read_u16_le(POINTER + 0x482))
 		TNT = (memory.read_u8(POINTER + 0x1F061C - 2033160))
+		WEAPON = (memory.read_u8(POINTER + 0x36))
 		if (JUMP < 0) and (JUMP_SWITCH == 0) then
 			JUMP_SWITCH = 5
 		elseif (JUMP == 0) and JUMP_SWITCH > 0 then
@@ -591,7 +597,6 @@ while true do
 				FRAMESENDED = 0
 				total_reward = 0
 				n_episode = n_episode + 1
-				n_episode_track[TRACK + 1] = n_episode_track[TRACK + 1] + 1
 			end
 			FRAME_SKIP_COUNTER = 0
 			FRAMESENDED = FRAMESENDED + 1
@@ -627,7 +632,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE)
+		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE, WEAPON)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -638,12 +643,13 @@ while true do
 				FRAME_SKIP_COUNTER = 10
 				tcp:send(5000) --signal to end the episode
 				feedback, status, partial = tcp:receive()
+				finished_attempts_track[TRACK + 1] = finished_attempts_track[TRACK + 1] + 1
 				finish[n_episode % average_size] = POSITION + 1
 				average_finish = average(finish)
-				average_track[TRACK+1][n_episode_track % average_size_track] = POSITION + 1
-				average_track[(TRACK+1)*2][n_episode_track % average_size_track] = TIMER
+				average_track[TRACK+1][finished_attempts_track[TRACK+1] % average_size_track] = POSITION + 1
+				average_track[TRACK+19][finished_attempts_track[TRACK+1] % average_size_track] = TIMER
 				average_finish_track[TRACK+1] = average(average_track[TRACK+1])
-				average_time_track[TRACK+1] = average(average_track[(TRACK+1)*2])
+				average_time_track[TRACK+1] = average(average_track[TRACK+19])
 				if POSITION + 1 < best_finish_track[TRACK+1] then
 					best_finish_track[TRACK+1] = POSITION + 1
 				end
@@ -669,7 +675,7 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 15, 0, -1, 0, 0, 0, 0)
+				press_buttons(0, 15, 0, -1, 0, 0, 0, 0, 0)
 			end
 		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
@@ -689,23 +695,24 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE)
+			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE, WEAPON)
 		end
 		gui.text(XTEXT,140,string.format("Random: %.2f %%", 100*tonumber(random_rate)),"white")
 		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
 		--gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
 		--gui.text(XTEXT,200,string.format("Best reward : %.2f", best_reward),"white")
-		gui.text(XTEXT,180,"Attempts : " .. n_episode,"white")
+		gui.text(XTEXT,180,"Episode : " .. n_episode,"white")
 		if (MODE == 'Cup') or (MODE == 'Race') then
 			gui.text(XTEXT,200,string.format("Average finish : %.2f", average_finish),"white")
 		end
-		gui.text(XTEXT,220,tracks[TRACK+1] .. " stats :","yellow")
-		gui.text(XTEXT,240,"Attempts : " .. n_episode_track[TRACK+1],"yellow")
-		gui.text(XTEXT,260,string.format("Average time : %d", average_time_track[TRACK+1]),"yellow")
-		gui.text(XTEXT,280,string.format("Best time : %d", best_time_track[TRACK+1]),"yellow")
+		
+		gui.text(XTEXT,240,tracks[TRACK+1] .. " stats :","yellow")
+		gui.text(XTEXT,260,"Finished attempts : " .. finished_attempts_track[TRACK+1],"yellow")
+		gui.text(XTEXT,280,string.format("Average time : %d", average_time_track[TRACK+1]),"yellow")
+		gui.text(XTEXT,300,string.format("Best time : %d", best_time_track[TRACK+1]),"yellow")
 		if (MODE == 'Cup') or (MODE == 'Race') then
-			gui.text(XTEXT,300,string.format("Average finish : %.2f", average_finish_track[TRACK+1]),"yellow")
-			gui.text(XTEXT,320,string.format("Best finish : %d", best_finish_track[TRACK+1]),"yellow")
+			gui.text(XTEXT,320,string.format("Average finish : %.2f", average_finish_track[TRACK+1]),"yellow")
+			gui.text(XTEXT,340,string.format("Best finish : %d", best_finish_track[TRACK+1]),"yellow")
 		end
 	end 
 	emu.frameadvance()
