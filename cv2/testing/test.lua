@@ -144,6 +144,13 @@ local FRAMESENDED = 0
 local ENDSWITCH = 1
 local FRAME_SKIP_COUNTER = 0
 local rewards = {}
+local finish_track = {}
+for i = 1,36,1
+do
+	finish_track[i] = {}
+end
+local average_finish_track = 0
+local average_time_track = 0
 local total_reward = 0.
 local best_reward = 0
 local n_episode = 0
@@ -351,13 +358,17 @@ while true do
 			reward_malus = reward_malus + 50.
 		end
 
+		finish_track[TRACK+1][TIMER%64] = TRACK+1
+		finish_track[(TRACK+1)*2][TIMER%64] = TIMER%64
+		average_finish_track = average(finish_track[TRACK+1])
+		average_time_track = average(finish_track[(TRACK+1)*2])
 		
 		TOT_SPD = math.floor(math.sqrt(X_SPD*X_SPD+Y_SPD*Y_SPD))
 
 		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
-		gui.text(XTEXT,120,"test: " .. JUMP .. " " .. TURBO .. " " .. TURBO_CHARGE,"white")
+		gui.text(XTEXT,120,"test: " .. average_finish_track .. " " .. average_time_track .. " " .. TRACK,"white")
 		if table["P1 Circle"] then 
 			print(TURBO_CHARGE, TURBO) 
 		end
@@ -447,10 +458,10 @@ while true do
 		if table["P1 R2"] then gui.drawBox(300,315,320,329,color,color) else end
 		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",146,314,200,142)
 		scale = 1.
-		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 250, 200, 200)
+		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 660, 360, 100, 100)
 		
 		--gui.drawImageRegion("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/crashcove_aiview.png",get_x(X_POS)-100,get_y(Y_POS)-100,200,200, 2, 350, 100, 100)
-		gui.drawPie(2,250,200,200,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
+		gui.drawPie(660,360,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
 
 		
 	end 

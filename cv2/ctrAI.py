@@ -296,6 +296,8 @@ class Console:
 BATCH_SIZE = 64
 GAMMA = 0.999
 RANDOMNESS = 0.0
+MIN_RANDOMNESS = 0.0
+MAX_RANDOMNESS = 1.0
 TARGET_UPDATE = 30
 lr = 0.0005
 manual_training = False
@@ -397,6 +399,7 @@ image = TrackImage(crop_size)
 image.resize(6)
 
 num_episodes = 10000
+print("test: ctrai_cv2_%s.model" % str(num_episodes))
 
 for i_episode in range(num_episodes):
 	if first_connection:
@@ -405,7 +408,6 @@ for i_episode in range(num_episodes):
 			print("ERROR: Couldn't connect to the lua script.")
 			exit()
 		first_connection = False
-
 	inputs = list(map(float, console.recv().split()))
 	print(inputs)
 	#theta = np.arctan2(inputs[0], inputs[1])
@@ -431,12 +433,12 @@ for i_episode in range(num_episodes):
 		console.send("Reward received\n")
 		if (reward_float == 5000):
 			break
-		if reward_float <= 50.:
-			RANDOMNESS = min(1., RANDOMNESS + 0.50)
-		if reward_float < 0.: #increase randomness if AI gets it wrong
-			RANDOMNESS = min(1., RANDOMNESS + 0.03)
+		if reward_float <= -50.:
+			RANDOMNESS = min(MAX_RANDOMNESS, RANDOMNESS + 0.50)
+		elif reward_float < 0.: #increase randomness if AI gets it wrong
+			RANDOMNESS = min(MAX_RANDOMNESS, RANDOMNESS + 0.03)
 		else: #quickly put back randomness to zero if AI gets it right
-			RANDOMNESS = max(0., RANDOMNESS - 0.15)
+			RANDOMNESS = max(MIN_RANDOMNESS, RANDOMNESS - 0.15)
 
 		inputs = list(map(float, console.recv().split()))
 		#theta = np.arctan2(inputs[0], inputs[1])
@@ -459,6 +461,6 @@ for i_episode in range(num_episodes):
 			'model_state_dict': policy_net.state_dict(),
 			'optimizer_state_dict': optimizer.state_dict(),
 			'memory': memory
-			}, "ctrai_cv2.model")
+			}, "ctrai_cv2_%s.model" % str(i_episode))
 
 console.close()

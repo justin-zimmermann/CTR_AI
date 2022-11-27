@@ -10,6 +10,26 @@ local OUT_TO_BUTTONS = {
     {1, 0, 0, 0, 0, 1, 0, 0, 0},
     {0, 1, 0, 0, 0, 1, 0, 0, 0}
 }
+local tracks = {
+	"Crash Cove",
+	"Roo's Tubes",
+	"Tiger Temple",
+	"Coco Park",
+	"Mystery Caves",
+	"Blizzard Bluff",
+	"Sewer Speedway",
+	"Dingo Canyon",
+	"Papu's Pyramid",
+	"Dragon Mines",
+	"Polar Pass",
+	"Cortex Castle",
+	"Tiny Arena",
+	"Hot Air Skyway",
+	"N.gin Labs",
+	"Oxide Station",
+	"Slide Coliseum",
+	"Turbo Track"
+}
 local COEFFX = {{1096.3871668881495, 0.00024703},
 		{648.8907972725096, 0.00016692},
 		{808.2214949463429, 0.00015567},
@@ -50,7 +70,7 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag)
+local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag, turbo_charge)
 	circle = 0
 	l1 = 0
 	r1 = 0
@@ -74,7 +94,7 @@ local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_swit
 			l1 = 1
 		end
 	-- jump off edges
-	elseif (raceended == 0) and (jump_switch == 5) and (ram_spd > 10000) then
+	elseif (raceended == 0) and (turbo_charge == 0) and (jump_switch == 5) and (ram_spd > 10000) and (turbo_flag ~=2) then
 		r1 = 1
 	end
 	joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=l1, R1=r1, R2=r2, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=down, Start=BUTTONS[9], Circle=circle}, 1)
@@ -158,6 +178,7 @@ local FRAME = 0
 
 local XTEXT = 2
 local YTEXT = 60
+local XTEXT2 = 600
 
 local XBOX = 670
 local YBOX = 55
@@ -175,7 +196,43 @@ local finish = {}
 local total_reward = 0.
 local best_reward = 0
 local n_episode = 0
+local n_episode_track = {}
+for i = 1,18,1
+do
+	n_episode_track[i] = 0
+end
+local average_track = {}
+for i = 1,36,1
+do
+	average_track[i] = {}
+end
+local best_track = {}
+for i = 1,36,1
+do
+	best_track[i] = 9999999
+end
+local average_finish_track = {}
+for i = 1,18,1
+do
+	average_finish_track[i] = 0
+end
+local average_time_track = {}
+for i = 1,18,1
+do
+	average_time_track[i] = 0
+end
+local best_finish_track = {}
+for i = 1,18,1
+do
+	best_finish_track[i] = 9999999
+end
+local best_time_track = {}
+for i = 1,18,1
+do
+	best_time_track[i] = 9999999
+end
 local average_size = 64
+local average_size_track = 6
 local average_reward = 0
 local average_finish = 0.
 local is_random = 0
@@ -195,8 +252,8 @@ oldy1 = 314
 oldy2 = 456
 newx1 = 2
 newx2 = 152
-newy1 = 220
-newy2 = 340
+newy1 = 340
+newy2 = 460
 
 -- modes: Cup, Race, Adventure
 local MODE = 'Cup'
@@ -413,6 +470,9 @@ while true do
 		if PICKUP > 3 then
 			reward_malus = reward_malus + 50.
 		end
+		if FRAMES_NOT_MOVING > 0 then
+			reward_malus = reward_malus + 0.1
+		end
 
 		
 		TOT_SPD = math.floor(math.sqrt(X_SPD*X_SPD+Y_SPD*Y_SPD))
@@ -513,10 +573,10 @@ while true do
 		if table["P1 R2"] then gui.drawBox(joypad_x(300),joypad_y(315),joypad_x(320),joypad_y(329),color,color) else end
 		gui.drawImage("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/Test2.png",newx1,newy1,newx2-newx1,newy2-newy1)
 		scale = 1.
-		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 2, 360, 100, 100)
+		gui.drawImageRegion(IMAGE_PATH,(get_x(X_POS, TRACK)-100.)/scale,(get_y(Y_POS, TRACK)-100.)/scale,200/scale,200/scale, 660, 360, 100, 100)
 		
 		--gui.drawImageRegion("C:/Users/Justin/Documents/CTR/BizHawk-2.4.1/crashcove_aiview.png",get_x(X_POS)-100,get_y(Y_POS)-100,200,200, 2, 350, 100, 100)
-		gui.drawPie(2,360,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
+		gui.drawPie(660,360,100,100,360*(-ANGLE)/4095 +45 ,90,"yellow", "null")
 
 		if is_random == 2 and ENDSWITCH == 0 and PREV_PICKUP < 4 then --manual training
 			tcp:send(action)
@@ -531,6 +591,7 @@ while true do
 				FRAMESENDED = 0
 				total_reward = 0
 				n_episode = n_episode + 1
+				n_episode_track[TRACK + 1] = n_episode_track[TRACK + 1] + 1
 			end
 			FRAME_SKIP_COUNTER = 0
 			FRAMESENDED = FRAMESENDED + 1
@@ -566,7 +627,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG)
+		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -577,13 +638,18 @@ while true do
 				FRAME_SKIP_COUNTER = 10
 				tcp:send(5000) --signal to end the episode
 				feedback, status, partial = tcp:receive()
-				rewards[n_episode % average_size] = total_reward
 				finish[n_episode % average_size] = POSITION + 1
-				if total_reward > best_reward then
-					best_reward = total_reward
-				end
-				average_reward = average(rewards)
 				average_finish = average(finish)
+				average_track[TRACK+1][n_episode_track % average_size_track] = POSITION + 1
+				average_track[(TRACK+1)*2][n_episode_track % average_size_track] = TIMER
+				average_finish_track[TRACK+1] = average(average_track[TRACK+1])
+				average_time_track[TRACK+1] = average(average_track[(TRACK+1)*2])
+				if POSITION + 1 < best_finish_track[TRACK+1] then
+					best_finish_track[TRACK+1] = POSITION + 1
+				end
+				if TIMER < best_time_track[TRACK+1] then
+					best_time_track[TRACK+1] = TIMER
+				end
 			end
 			FRAMESENDED = FRAMESENDED + 1
 			if (MODE == 'Race') or 
@@ -603,7 +669,7 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 15, 0, -1, 0, 0, 0)
+				press_buttons(0, 15, 0, -1, 0, 0, 0, 0)
 			end
 		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
@@ -612,13 +678,6 @@ while true do
 				FRAME_SKIP_COUNTER = 10
 				tcp:send(5000) --signal to end the episode
 				feedback, status, partial = tcp:receive()
-				rewards[n_episode % average_size] = total_reward
-				finish[n_episode % average_size] = 8
-				if total_reward > best_reward then
-					best_reward = total_reward
-				end
-				average_reward = average(rewards)
-				average_finish = average(finish)
 			end
 			FRAMES_NOT_MOVING = 0
 			FRAMESENDED = FRAMESENDED + 1
@@ -630,18 +689,24 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG)
+			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE)
 		end
-		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
-		gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
-		gui.text(XTEXT,200,string.format("Best reward : %.2f", best_reward),"white")
-		gui.text(XTEXT,240,"Attempts : " .. n_episode,"white")
 		gui.text(XTEXT,140,string.format("Random: %.2f %%", 100*tonumber(random_rate)),"white")
+		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
+		--gui.text(XTEXT,180,string.format("Average reward : %.2f", average_reward),"white")
+		--gui.text(XTEXT,200,string.format("Best reward : %.2f", best_reward),"white")
+		gui.text(XTEXT,180,"Attempts : " .. n_episode,"white")
 		if (MODE == 'Cup') or (MODE == 'Race') then
-			gui.text(XTEXT,220,string.format("Average finish : %.2f", average_finish),"white")
+			gui.text(XTEXT,200,string.format("Average finish : %.2f", average_finish),"white")
 		end
-		gui.text(XTEXT,260,"Jump switch : " .. JUMP_SWITCH,"white")
-		gui.text(XTEXT,280,"Jump : " .. JUMP,"white")
+		gui.text(XTEXT,220,tracks[TRACK+1] .. " stats :","yellow")
+		gui.text(XTEXT,240,"Attempts : " .. n_episode_track[TRACK+1],"yellow")
+		gui.text(XTEXT,260,string.format("Average time : %d", average_time_track[TRACK+1]),"yellow")
+		gui.text(XTEXT,280,string.format("Best time : %d", best_time_track[TRACK+1]),"yellow")
+		if (MODE == 'Cup') or (MODE == 'Race') then
+			gui.text(XTEXT,300,string.format("Average finish : %.2f", average_finish_track[TRACK+1]),"yellow")
+			gui.text(XTEXT,320,string.format("Best finish : %d", best_finish_track[TRACK+1]),"yellow")
+		end
 	end 
 	emu.frameadvance()
 	
