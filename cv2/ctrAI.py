@@ -301,8 +301,8 @@ MAX_RANDOMNESS = 1.0
 TARGET_UPDATE = 30
 lr = 0.0005
 manual_training = False
-is_checkpoint = True
-testing = True
+is_checkpoint = False
+testing = False
 checkpoint = None
 if is_checkpoint:
 	checkpoint = torch.load("models/ctrai_cv2_450_2_92.model")
@@ -434,7 +434,7 @@ for i_episode in range(num_episodes):
 		if (reward_float == 5000):
 			break
 		if reward_float <= -50.:
-			RANDOMNESS = min(MAX_RANDOMNESS, RANDOMNESS + 0.50)
+			RANDOMNESS = min(MAX_RANDOMNESS, RANDOMNESS + 0.25)
 		elif reward_float < 0.: #increase randomness if AI gets it wrong
 			RANDOMNESS = min(MAX_RANDOMNESS, RANDOMNESS + 0.03)
 		else: #quickly put back randomness to zero if AI gets it right

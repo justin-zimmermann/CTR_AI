@@ -1,0 +1,14 @@
+improvements:
+x lower random from 50% to 25% on respawn
+x prevent item respawn from giving negative reward and increasing random%
+x inverse inputs when negative speed
+x use true speed for speed calculations instead of RAM speed
+dark color on spiders in castle, plants in pyramid
+x (maybe: remove green color on ramps without turbopads -> depends which ones)
+x detect when squished or spinned out by spider, and give negative reward (or fireball)
+do something about ngin labs 1st stp
+x when targeted by missile can't froggy
+x keep shield until next rolled item
+1F0618 = 214948060 / 214947984
+1E2D98 = 214945958 / 214946022
+x change reward function to reward driving on turbopad

@@ -70,37 +70,45 @@ local COEFFY = {{720.6058956589455, 0.00024687},
 		}
 local SAVESTATESLOT = 0
 
-local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag, turbo_charge, weapon)
+local function press_buttons(frame, raceended, tnt, position, ram_spd, jump_switch, turbo_flag, pickup, weapon, tot_spd, shield_on)
 	circle = 0
 	l1 = 0
 	r1 = 0
 	down = 0
 	r2 = 0
-	-- use item every 3 seconds or when item is rolling to get it faster
-	if weapon > 0 then
-		if weapon < 65 then
-			circle = 1
-		end
-	elseif (raceended == 0) and (frame < 10) then
+	left = 0
+	right = 0
+	-- if negative RAM speed, invert directions
+	if ram_spd < 0 then
+		left = BUTTONS[2]
+		right = BUTTONS[1]
+	else
+		left = BUTTONS[1]
+		right = BUTTONS[2]
+	end
+	-- use item every 3 seconds (if no shield on) or when item is rolling to get it faster
+	if (weapon > 0) and (weapon < 65) then
+		circle = 1
+	elseif ((raceended == 0) or (raceended == 4)) and (frame < 10) and (shield_on ~= 214948060) and (shield_on ~= 214947984) then
 		circle = 1
 	end
-	-- if first, look backwards and shoot item backwards (back bomb and missile)
-	if (raceended == 0) and (position == 0) and ((frame > 170) or (frame < 30)) then
+	-- if first or targeted by missile (raceended=4), look backwards and shoot item backwards (back bomb and missile)
+	if (((raceended == 0) and (position == 0)) or (raceended == 4)) and ((frame > 170) or (frame < 30)) then
 		down = 1
 		r2 = 1
 	end
 	-- froggy if TNT (or speed high enough)
-	if (raceended == 0) and ((tnt > 0) or ((ram_spd > 15000) and (turbo_flag ~=2))) then
+	if ((raceended == 0) or (raceended == 4)) and ((tnt > 0) or ((tot_spd > 14700) and (turbo_flag ~=2))) then
 		if (frame%4 < 2) then
 			r1 = 1
 		else
 			l1 = 1
 		end
 	-- jump off edges
-	elseif (raceended == 0) and (turbo_charge == 0) and (jump_switch == 5) and (ram_spd > 10000) and (turbo_flag ~=2) then
+	elseif ((raceended == 0) or (raceended == 4)) and (pickup ~= 2) and (jump_switch == 5) and (tot_spd > 9500) and (turbo_flag ~=2) then
 		r1 = 1
 	end
-	joypad.set({Left=BUTTONS[1], Right=BUTTONS[2], L1=l1, R1=r1, R2=r2, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=down, Start=BUTTONS[9], Circle=circle}, 1)
+	joypad.set({Left=left, Right=right, L1=l1, R1=r1, R2=r2, Square=BUTTONS[5], Cross=BUTTONS[6], Up=BUTTONS[7], Down=down, Start=BUTTONS[9], Circle=circle}, 1)
 
 end
 
@@ -218,12 +226,12 @@ end
 local average_finish_track = {}
 for i = 1,18,1
 do
-	average_finish_track[i] = 0
+	average_finish_track[i] = 9999999
 end
 local average_time_track = {}
 for i = 1,18,1
 do
-	average_time_track[i] = 0
+	average_time_track[i] = 9999999
 end
 local best_finish_track = {}
 for i = 1,18,1
@@ -242,6 +250,8 @@ local average_finish = 0.
 local is_random = 0
 local random_rate = 0.
 local reward_malus = 0.
+local reward_malus_2 = 0.
+local reward_bonus = 0.
 local TRACK = 0.
 local IMAGE_PATH
 local FRAMES_NOT_MOVING = 0
@@ -251,6 +261,10 @@ local POSITION = 0
 local TNT = 0
 local JUMP_SWITCH = 0
 local WEAPON = 0
+local SHIELD_ON = 0
+local minutes = 0
+local seconds = 0
+local hundreths = 0
 oldx1 = 146
 oldx2 = 346
 oldy1 = 314
@@ -293,7 +307,7 @@ while true do
 		X_POS = 		(memory.read_s32_le( POINTER + 0x2D4 )) -- + 0x2E0
 		Y_POS = 		(memory.read_s32_le( POINTER + 0x2DC )) -- + 0x2E8
 		Z_POS = 		(memory.read_s32_le( POINTER + 0x2D8 ))
-		RAM_SPD = 		(memory.read_s16_le( POINTER + 0x38C ))
+		RAM_SPD = 		(memory.read_s32_le( POINTER + 0x38C ))
 		ANGLE = 		(memory.read_s16_le( POINTER + 0x39A ))	-- + 0x2EE
 		TURBO_CHARGE = 	(memory.read_s16_le( POINTER + 0x3DC ))
 		TURBO = 		(memory.read_s16_le( POINTER + 0x3E2 ))
@@ -315,10 +329,12 @@ while true do
 			WALL = 			(memory.read_u16_le( POINTER + 0x50 ))
 		end
 		PICKUP = 		(memory.read_s8( POINTER + 0x376  ))
+		-- pickup flag: 0 normal 1 crash 2 slide 3 spin 4 forced still 5 mask grab 6 explode
 		TURBO_FLAG = (memory.read_u16_le( POINTER + 0xBC  ))
 		POSITION = (memory.read_u16_le(POINTER + 0x482))
 		TNT = (memory.read_u8(POINTER + 0x1F061C - 2033160))
 		WEAPON = (memory.read_u8(POINTER + 0x36))
+		SHIELD_ON = (memory.read_u32_le(POINTER + 0x1F0618 - 2033160))
 		if (JUMP < 0) and (JUMP_SWITCH == 0) then
 			JUMP_SWITCH = 5
 		elseif (JUMP == 0) and JUMP_SWITCH > 0 then
@@ -473,11 +489,17 @@ while true do
 		if WALL > 0 then
 			reward_malus = reward_malus + 0.1
 		end
-		if PICKUP > 3 then
+		if (PICKUP == 5) or (PICKUP == 4) then --mask pickup
 			reward_malus = reward_malus + 50.
+		end
+		if (PICKUP == 1) or (PICKUP == 3) then --crash or spin
+			reward_malus_2 = reward_malus_2 + 0.1
 		end
 		if FRAMES_NOT_MOVING > 0 then
 			reward_malus = reward_malus + 0.1
+		end
+		if (TURBO_FLAG == 1) or (TURBO_FLAG == 2) then
+			reward_bonus = reward_bonus + 0.1
 		end
 
 		
@@ -495,7 +517,7 @@ while true do
 		
 		gui.text(XTEXT,20,"X : " .. X_POS,"white")
 		gui.text(XTEXT,40,"Y : " .. Y_POS,"white")
-		gui.text(XTEXT,60,"Speed (RAM) : " .. RAM_SPD,"white")
+		gui.text(XTEXT,60,"Speed (True) : " .. TOT_SPD,"white")
 		--gui.text(XTEXT,120,"Turbo Flag: " .. TURBO_FLAG,"white")
 		--gui.text(XTEXT,140,"Jump persistence: " .. JUMP_PERSISTENCE,"white")
 		gui.text(XTEXT,80,"Time left to complete lap:", "white")
@@ -591,7 +613,7 @@ while true do
 		--counter: instead of running the ml model every frame, run it every n frames (speeds up the process)
 		FRAME_SKIP_COUNTER = FRAME_SKIP_COUNTER + 1
 
-		if (RACEENDED ~= 2) and (TIMER > 0) and (TIMER < TIMER_LIMIT) and (FRAMES_NOT_MOVING < 1000) and (PREV_PICKUP < 4) and (FRAME_SKIP_COUNTER > 9) then
+		if (RACEENDED ~= 2) and (TIMER > 0) and (TIMER < TIMER_LIMIT) and (FRAMES_NOT_MOVING < 1000) and ((PREV_PICKUP == 0) or (PREV_PICKUP == 2)) and (FRAME_SKIP_COUNTER > 9) then
 			if ENDSWITCH == 1 then
 				ENDSWITCH = 0
 				FRAMESENDED = 0
@@ -600,15 +622,19 @@ while true do
 			end
 			FRAME_SKIP_COUNTER = 0
 			FRAMESENDED = FRAMESENDED + 1
-			reward = (PREV_LAPPROG - LAPPROG) / 33.0 * RAM_SPD / 12000.0
+			reward = (PREV_LAPPROG - LAPPROG) / 33.0 * TOT_SPD / 12000.0
 			if math.abs(PREV_LAPPROG - LAPPROG) > 5000 then reward = 0 
 			end
 			if reward_malus >= 50. then
 				reward = -50.
+			elseif (reward_malus_2 > 0) then
+				reward = 0.
 			else
-				reward = reward - reward_malus
+				reward = reward - reward_malus + reward_bonus
 			end
 			reward_malus = 0.
+			reward_malus_2 = 0.
+			reward_bonus = 0.
 
 			total_reward = total_reward + reward
 			
@@ -632,7 +658,7 @@ while true do
 			end
 		    
 		    if is_random ~= 2 then
-		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE, WEAPON)
+		    	press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, PICKUP, WEAPON, TOT_SPD, SHIELD_ON)
 		    else 
 		    	joypad.set({Cross = 1}, 1)
 		    end
@@ -643,18 +669,19 @@ while true do
 				FRAME_SKIP_COUNTER = 10
 				tcp:send(5000) --signal to end the episode
 				feedback, status, partial = tcp:receive()
+				finished_attempts = finished_attempts + 1
 				finished_attempts_track[TRACK + 1] = finished_attempts_track[TRACK + 1] + 1
-				finish[n_episode % average_size] = POSITION + 1
+				finish[finished_attempts % average_size] = POSITION + 1
 				average_finish = average(finish)
 				average_track[TRACK+1][finished_attempts_track[TRACK+1] % average_size_track] = POSITION + 1
-				average_track[TRACK+19][finished_attempts_track[TRACK+1] % average_size_track] = TIMER
+				average_track[TRACK+19][finished_attempts_track[TRACK+1] % average_size_track] = TIMER/960.43
 				average_finish_track[TRACK+1] = average(average_track[TRACK+1])
 				average_time_track[TRACK+1] = average(average_track[TRACK+19])
 				if POSITION + 1 < best_finish_track[TRACK+1] then
 					best_finish_track[TRACK+1] = POSITION + 1
 				end
-				if TIMER < best_time_track[TRACK+1] then
-					best_time_track[TRACK+1] = TIMER
+				if TIMER/960.43 < best_time_track[TRACK+1] then
+					best_time_track[TRACK+1] = TIMER/960.43
 				end
 			end
 			FRAMESENDED = FRAMESENDED + 1
@@ -675,7 +702,7 @@ while true do
 				load_savestate(SAVESTATESLOT)
 			else
 				end_race(FRAMESENDED)
-				press_buttons(0, 15, 0, -1, 0, 0, 0, 0, 0)
+				press_buttons(0, 15, 0, -1, 0, 0, 0, 0, 0, 0, 0)
 			end
 		elseif (RACEENDED == 0) and ((TIMER >= TIMER_LIMIT) or (FRAMES_NOT_MOVING >= 1000)) then --if too long without progress restart
 			if ENDSWITCH == 0 then
@@ -695,7 +722,7 @@ while true do
 			load_savestate(SAVESTATESLOT)
 		else --keep pressing same button during skip frames
 			BUTTONS = OUT_TO_BUTTONS[tonumber(action) + 1]
-			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, TURBO_CHARGE, WEAPON)
+			press_buttons(FRAME, RACEENDED, TNT, POSITION, RAM_SPD, JUMP_SWITCH, TURBO_FLAG, PICKUP, WEAPON, TOT_SPD, SHIELD_ON)
 		end
 		gui.text(XTEXT,140,string.format("Random: %.2f %%", 100*tonumber(random_rate)),"white")
 		gui.text(XTEXT,160,string.format("Current reward : %.2f", total_reward),"white")
@@ -708,8 +735,14 @@ while true do
 		
 		gui.text(XTEXT,240,tracks[TRACK+1] .. " stats :","yellow")
 		gui.text(XTEXT,260,"Finished attempts : " .. finished_attempts_track[TRACK+1],"yellow")
-		gui.text(XTEXT,280,string.format("Average time : %d", average_time_track[TRACK+1]),"yellow")
-		gui.text(XTEXT,300,string.format("Best time : %d", best_time_track[TRACK+1]),"yellow")
+		minutes = math.floor(average_time_track[TRACK+1] / 60)
+		seconds = math.floor(average_time_track[TRACK+1] - (minutes*60))
+		hundreths = 100 * (average_time_track[TRACK+1] - (minutes*60) - seconds)
+		gui.text(XTEXT,280,string.format("Average time : %d:%02d.%02d", minutes, seconds, hundreths),"yellow")
+		minutes = math.floor(best_time_track[TRACK+1] / 60)
+		seconds = math.floor(best_time_track[TRACK+1] - (minutes*60))
+		hundreths = 100 * (best_time_track[TRACK+1] - (minutes*60) - seconds)
+		gui.text(XTEXT,300,string.format("Best time : %d:%02d.%02d", minutes, seconds, hundreths),"yellow")
 		if (MODE == 'Cup') or (MODE == 'Race') then
 			gui.text(XTEXT,320,string.format("Average finish : %.2f", average_finish_track[TRACK+1]),"yellow")
 			gui.text(XTEXT,340,string.format("Best finish : %d", best_finish_track[TRACK+1]),"yellow")

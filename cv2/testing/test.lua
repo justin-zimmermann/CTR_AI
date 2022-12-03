@@ -368,9 +368,11 @@ while true do
 		gui.text(XTEXT,60,"Angle : " .. ANGLE,"white")
 		gui.text(XTEXT,80,"Speed (RAM) : " .. RAM_SPD,"white")
 		gui.text(XTEXT,100,"Speed (True): " .. TOT_SPD,"white")
-		gui.text(XTEXT,120,"test: " .. WEAPON .. " " .. average_time_track .. " " .. TRACK,"white")
+		gui.text(XTEXT,120,"Test: " .. TURBO_FLAG .. " " .. RACEENDED,"white")
 		if table["P1 Circle"] then 
-			print(TURBO_CHARGE, TURBO) 
+			test = {}
+			test[1] = 1
+			print(test[2]) 
 		end
 		--gui.text(XTEXT,120,"Reserve : " .. TURBO,"white")
 		--gui.text(XTEXT,140,"Charge : " .. TURBO_CHARGE,"white")
