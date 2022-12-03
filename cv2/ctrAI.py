@@ -301,11 +301,11 @@ MAX_RANDOMNESS = 1.0
 TARGET_UPDATE = 30
 lr = 0.0005
 manual_training = False
-is_checkpoint = False
-testing = False
+is_checkpoint = True
+testing = True
 checkpoint = None
 if is_checkpoint:
-	checkpoint = torch.load("models/ctrai_cv2_450_2_92.model")
+	checkpoint = torch.load("ctrai_cv2_300.model")
 
 crop_size = 20
 n_actions = 3

@@ -244,7 +244,7 @@ do
 	best_time_track[i] = 9999999
 end
 local average_size = 64
-local average_size_track = 6
+local average_size_track = 8
 local average_reward = 0
 local average_finish = 0.
 local is_random = 0

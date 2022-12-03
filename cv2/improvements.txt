@@ -3,7 +3,7 @@ x lower random from 50% to 25% on respawn
 x prevent item respawn from giving negative reward and increasing random%
 x inverse inputs when negative speed
 x use true speed for speed calculations instead of RAM speed
-dark color on spiders in castle, plants in pyramid
+x dark color on spiders in castle, plants in pyramid
 x (maybe: remove green color on ramps without turbopads -> depends which ones)
 x detect when squished or spinned out by spider, and give negative reward (or fireball)
 do something about ngin labs 1st stp
